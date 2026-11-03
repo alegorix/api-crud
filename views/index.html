@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestion des Produits - API CRUD</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Catalogue Produits (CRUD via API REST)</h1>
+
+    <div class="card">
+        <h2 id="form-title">Ajouter un produit</h2>
+        <input type="hidden" id="prod-id">
+        <div class="form-group">
+            <input type="text" id="prod-name" placeholder="Nom du produit" required>
+            <input type="number" step="0.01" id="prod-price" placeholder="Prix (€)" required>
+            <button id="save-btn" onclick="saveProduct()">Ajouter</button>
+            <button id="cancel-btn" style="display:none; background:#64748b;" onclick="resetForm()">Annuler</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Liste des produits</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Prix</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="product-list"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'index.php/api/products';
+
+        async function fetchProducts() {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            const tbody = document.getElementById('product-list');
+            tbody.innerHTML = '';
+            
+            data.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${p.name}</td>
+                        <td>${parseFloat(p.price).toFixed(2)} €</td>
+                        <td class="actions">
+                            <button onclick="editProduct(${p.id}, '${p.name}', ${p.price})">Modifier</button>
+                            <button class="btn-danger" onclick="deleteProduct(${p.id})">Supprimer</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function saveProduct() {
+            const id = document.getElementById('prod-id').value;
+            const name = document.getElementById('prod-name').value;
+            const price = document.getElementById('prod-price').value;
+
+            if (!name || !price) return alert('Veuillez remplir tous les champs');
+
+            const payload = { name, price: parseFloat(price) };
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/${id}` : API_URL;
+
+            await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            resetForm();
+            fetchProducts();
+        }
+
+        async function deleteProduct(id) {
+            if (confirm('Voulez-vous supprimer ce produit ?')) {
+                await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                fetchProducts();
+            }
+        }
+
+        function editProduct(id, name, price) {
+            document.getElementById('prod-id').value = id;
+            document.getElementById('prod-name').value = name;
+            document.getElementById('prod-price').value = price;
+            document.getElementById('form-title').innerText = 'Modifier le produit #' + id;
+            document.getElementById('save-btn').innerText = 'Mettre à jour';
+            document.getElementById('cancel-btn').style.display = 'inline-block';
+        }
+
+        function resetForm() {
+            document.getElementById('prod-id').value = '';
+            document.getElementById('prod-name').value = '';
+            document.getElementById('prod-price').value = '';
+            document.getElementById('form-title').innerText = 'Ajouter un produit';
+            document.getElementById('save-btn').innerText = 'Ajouter';
+            document.getElementById('cancel-btn').style.display = 'none';
+        }
+
+        fetchProducts();
+    </script>
+</body>
+</html>
